@@ -36,7 +36,7 @@ target_sources(${PROJECT_NAME}_objects
         src/detours.h
         src/detver.h)
 target_compile_definitions(${PROJECT_NAME}_objects PRIVATE DETOUR_DEBUG=${DETOURS_DEBUG})
-if (MSVC)
+if (MSVC AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
     target_compile_options(${PROJECT_NAME}_objects PRIVATE /we4777 /we4800 /W4 /WX)
     if (DETOURS_SOURCE_BROWSING)
         find_program(BSCMAKE_COMMAND bscmake REQUIRED)
@@ -55,18 +55,20 @@ endif()
 add_library(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_objects>)
 
-# target browse information
-set(OUT_BSC "${CMAKE_CURRENT_BINARY_DIR}/source_browse.bsc")
-set(SBR "")
-foreach(file_source IN LISTS SRC)
-    get_filename_component(file_name ${file_source} NAME_WE)
-    list(APPEND SBR "${CMAKE_CURRENT_BINARY_DIR}/src/${file_name}.sbr")
-endforeach()
-add_custom_target(
-    ${PROJECT_NAME}_source_browse
-    COMMAND bscmake /v /n /o "$<TARGET_FILE_DIR:${PROJECT_NAME}>/${PROJECT_NAME}.bsc" ${SBR}
-    COMMENT "Generate BSC file"
-    DEPENDS $<TARGET_OBJECTS:${PROJECT_NAME}_objects>
-    VERBATIM
-)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_source_browse)
+if (MSVC AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+    # target browse information
+    set(OUT_BSC "${CMAKE_CURRENT_BINARY_DIR}/source_browse.bsc")
+    set(SBR "")
+    foreach(file_source IN LISTS SRC)
+        get_filename_component(file_name ${file_source} NAME_WE)
+        list(APPEND SBR "${CMAKE_CURRENT_BINARY_DIR}/src/${file_name}.sbr")
+    endforeach()
+    add_custom_target(
+        ${PROJECT_NAME}_source_browse
+        COMMAND bscmake /v /n /o "$<TARGET_FILE_DIR:${PROJECT_NAME}>/${PROJECT_NAME}.bsc" ${SBR}
+        COMMENT "Generate BSC file"
+        DEPENDS $<TARGET_OBJECTS:${PROJECT_NAME}_objects>
+        VERBATIM
+    )
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_source_browse)
+endif()
